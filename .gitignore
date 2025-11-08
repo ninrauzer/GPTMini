@@ -1,0 +1,11 @@
+# Build artifacts
+bin/
+obj/
+
+# VS / VSCode
+.vs/
+.vscode/
+
+# OS files
+Thumbs.db
+.DS_Store
