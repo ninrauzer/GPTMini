@@ -14,10 +14,10 @@ const MessageBubble = ({ message }: MessageBubbleProps) => {
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
       <div
-        className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+        className={`max-w-[85%] px-4 py-3 rounded-lg ${
           isUser
             ? 'bg-primary-600 text-white rounded-br-none'
-            : 'bg-white text-gray-800 border border-gray-200 rounded-bl-none'
+            : 'bg-white text-gray-800 border border-gray-200 rounded-bl-none shadow-sm'
         }`}
       >
         {isUser ? (

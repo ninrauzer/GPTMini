@@ -2,6 +2,12 @@
 
 A local ChatGPT-like application with a .NET backend and React frontend.
 
+## 📸 Screenshots
+
+![GPTMini Chat Interface](docs/images/screenshot-chat.png)
+
+*GPTMini mostrando una conversación con resaltado de sintaxis para código Python*
+
 ## Project Structure
 
 ```
