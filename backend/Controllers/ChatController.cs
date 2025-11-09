@@ -61,10 +61,20 @@ public class ChatController : ControllerBase
             // Intentar leer como FormData primero
             if (messages != null)
             {
+                _logger.LogInformation("Received FormData request with messages JSON: {Messages}", messages);
+                _logger.LogInformation("Files count: {FileCount}", files?.Count ?? 0);
+                
                 var messageList = System.Text.Json.JsonSerializer.Deserialize<List<ChatMessage>>(messages);
                 if (messageList == null || messageList.Count == 0)
                 {
                     return BadRequest("Messages cannot be empty");
+                }
+
+                _logger.LogInformation("Deserialized {MessageCount} messages", messageList.Count);
+                for (int i = 0; i < messageList.Count; i++)
+                {
+                    _logger.LogInformation("Message {Index}: Role='{Role}', Content='{Content}'", 
+                        i, messageList[i].Role ?? "(null)", messageList[i].Content?.Substring(0, Math.Min(50, messageList[i].Content?.Length ?? 0)) ?? "(null)");
                 }
 
                 // Si hay archivos de imagen, forzar el uso de un modelo con Vision

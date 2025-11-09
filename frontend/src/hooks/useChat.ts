@@ -55,14 +55,18 @@ export const useChat = (options?: UseChatOptions) => {
 
       // Si hay archivos, enviar como FormData
       if (files && files.length > 0) {
+        console.log('📎 Enviando archivos:', files.map(f => ({ name: f.name, type: f.type, size: f.size })))
+        
         const formData = new FormData()
         formData.append('model', options?.model || 'gpt-4o-mini')
         formData.append('messages', JSON.stringify(updatedMessages.map(({ role, content }) => ({ role, content }))))
         
-        files.forEach((file) => {
+        files.forEach((file, index) => {
+          console.log(`  Archivo ${index}: ${file.name} (${file.type}) - ${file.size} bytes`)
           formData.append(`files`, file)
         })
 
+        console.log('📤 Enviando FormData al servidor...')
         response = await fetch('/api/chat', {
           method: 'POST',
           body: formData,

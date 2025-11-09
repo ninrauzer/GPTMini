@@ -16,6 +16,7 @@ public class OpenAIService : IOpenAIService
 {
     private readonly IConfiguration _configuration;
     private readonly HttpClient _httpClient;
+    private readonly ILogger<OpenAIService> _logger;
     private readonly string _apiKey;
     private readonly string _apiUrl;
 
@@ -23,6 +24,7 @@ public class OpenAIService : IOpenAIService
     {
         _configuration = configuration;
         _httpClient = httpClient;
+        _logger = logger;
         
         // Try to get API key from different sources
         var apiKeyFromConfig = _configuration["OpenAI:ApiKey"];
@@ -136,10 +138,21 @@ public class OpenAIService : IOpenAIService
     {
         try
         {
+            _logger.LogInformation("GetChatResponseWithFilesAsync called with {FileCount} files", files?.Count ?? 0);
+            if (files != null && files.Count > 0)
+            {
+                foreach (var file in files)
+                {
+                    _logger.LogInformation("File received: {FileName}, ContentType: {ContentType}, Length: {Length}", 
+                        file.FileName, file.ContentType, file.Length);
+                }
+            }
+
             // Si hay archivos de imagen, forzar gpt-4o
             if (files != null && files.Any(f => f.ContentType.StartsWith("image/")))
             {
                 model = "gpt-4o";
+                _logger.LogInformation("Switching to gpt-4o for image processing");
             }
             else
             {
@@ -217,9 +230,33 @@ public class OpenAIService : IOpenAIService
             };
 
             var json = JsonSerializer.Serialize(requestBody);
+            _logger.LogInformation("Sending request to OpenAI: Model={Model}, Messages={MessageCount}", model, openAIMessages.Count);
+            _logger.LogDebug("Request JSON: {Json}", json);
+            
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            var response = await _httpClient.PostAsync(_apiUrl, content);
+            HttpResponseMessage response;
+            try
+            {
+                _logger.LogInformation("Posting to {ApiUrl}", _apiUrl);
+                response = await _httpClient.PostAsync(_apiUrl, content);
+                _logger.LogInformation("Received response: {StatusCode}", response.StatusCode);
+            }
+            catch (HttpRequestException ex)
+            {
+                _logger.LogError(ex, "HttpRequestException while calling OpenAI API: {Message}", ex.Message);
+                throw new Exception($"Failed to connect to OpenAI API: {ex.Message}", ex);
+            }
+            catch (TaskCanceledException ex)
+            {
+                _logger.LogError(ex, "Request to OpenAI API timed out");
+                throw new Exception("Request to OpenAI API timed out", ex);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error calling OpenAI API: {Message}", ex.Message);
+                throw;
+            }
 
             if (!response.IsSuccessStatusCode)
             {
@@ -271,9 +308,10 @@ public class OpenAIService : IOpenAIService
 
             return (chatMessage, tokenUsage);
         }
-        catch (HttpRequestException ex)
+        catch (Exception ex) when (ex is not HttpRequestException && ex is not TaskCanceledException)
         {
-            throw new Exception($"Failed to connect to OpenAI API: {ex.Message}", ex);
+            _logger.LogError(ex, "Error in GetChatResponseWithFilesAsync: {Message}", ex.Message);
+            throw;
         }
     }
 
