@@ -9,6 +9,7 @@ namespace GPTMini.Services;
 public interface IOpenAIService
 {
     Task<(ChatMessage message, TokenUsage? usage)> GetChatResponseAsync(List<ChatMessage> messages, string? model = null);
+    Task<(ChatMessage message, TokenUsage? usage)> GetChatResponseWithFilesAsync(List<ChatMessage> messages, List<IFormFile>? files, string? model = null);
 }
 
 public class OpenAIService : IOpenAIService
@@ -96,6 +97,139 @@ public class OpenAIService : IOpenAIService
             if (firstChoice?.Message == null)
             {
                 throw new Exception("No message in OpenAI response. Response body: " + responseBody);
+            }
+
+            var message = firstChoice.Message;
+            var messageContent = message.Content ?? throw new Exception("No content in OpenAI response. Response body: " + responseBody);
+            
+            if (string.IsNullOrWhiteSpace(messageContent))
+            {
+                throw new Exception("Empty content in OpenAI response. Response body: " + responseBody);
+            }
+
+            var chatMessage = new ChatMessage
+            {
+                Role = "assistant",
+                Content = messageContent
+            };
+
+            TokenUsage? tokenUsage = null;
+            if (responseObject.Usage != null)
+            {
+                tokenUsage = new TokenUsage
+                {
+                    PromptTokens = responseObject.Usage.PromptTokens,
+                    CompletionTokens = responseObject.Usage.CompletionTokens,
+                    TotalTokens = responseObject.Usage.TotalTokens
+                };
+            }
+
+            return (chatMessage, tokenUsage);
+        }
+        catch (HttpRequestException ex)
+        {
+            throw new Exception($"Failed to connect to OpenAI API: {ex.Message}", ex);
+        }
+    }
+
+    public async Task<(ChatMessage message, TokenUsage? usage)> GetChatResponseWithFilesAsync(List<ChatMessage> messages, List<IFormFile>? files, string? model = null)
+    {
+        try
+        {
+            model ??= _configuration["OpenAI:Model"] ?? "gpt-4o-mini";
+
+            // Construir los mensajes para Vision API
+            var openAIMessages = new List<object>();
+
+            // Agregar mensajes históricos
+            foreach (var msg in messages.Take(messages.Count - 1))
+            {
+                openAIMessages.Add(new
+                {
+                    role = msg.Role,
+                    content = msg.Content
+                });
+            }
+
+            // Último mensaje con imágenes
+            var lastMessage = messages.Last();
+            var contentParts = new List<object>();
+
+            // Agregar texto
+            if (!string.IsNullOrWhiteSpace(lastMessage.Content))
+            {
+                contentParts.Add(new
+                {
+                    type = "text",
+                    text = lastMessage.Content
+                });
+            }
+
+            // Agregar imágenes si existen
+            if (files != null && files.Count > 0)
+            {
+                foreach (var file in files)
+                {
+                    if (file.ContentType.StartsWith("image/"))
+                    {
+                        using var memoryStream = new MemoryStream();
+                        await file.CopyToAsync(memoryStream);
+                        var imageBytes = memoryStream.ToArray();
+                        var base64Image = Convert.ToBase64String(imageBytes);
+                        var dataUrl = $"data:{file.ContentType};base64,{base64Image}";
+
+                        contentParts.Add(new
+                        {
+                            type = "image_url",
+                            image_url = new
+                            {
+                                url = dataUrl
+                            }
+                        });
+                    }
+                    // TODO: Procesar PDFs y DOCX para extraer texto
+                }
+            }
+
+            openAIMessages.Add(new
+            {
+                role = "user",
+                content = contentParts.ToArray()
+            });
+
+            var requestBody = new
+            {
+                model,
+                messages = openAIMessages.ToArray(),
+                max_tokens = 4096
+            };
+
+            var json = JsonSerializer.Serialize(requestBody);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            var response = await _httpClient.PostAsync(_apiUrl, content);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new Exception($"OpenAI API error ({response.StatusCode}): {errorContent}");
+            }
+
+            var responseBody = await response.Content.ReadAsStringAsync();
+            var responseObject = JsonSerializer.Deserialize<OpenAIResponse>(responseBody, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+
+            if (responseObject?.Choices == null || responseObject.Choices.Length == 0)
+            {
+                throw new Exception($"No choices in OpenAI response. Response: {responseBody}");
+            }
+
+            var firstChoice = responseObject.Choices[0];
+            if (firstChoice.Message == null)
+            {
+                throw new Exception($"No message in first choice. Response: {responseBody}");
             }
 
             var message = firstChoice.Message;

@@ -54,21 +54,48 @@ public class ChatController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult<ChatResponse>> PostMessage([FromBody] ChatRequest request)
+    public async Task<ActionResult<ChatResponse>> PostMessage([FromForm] string? messages = null, [FromForm] string? model = null, [FromForm] List<IFormFile>? files = null)
     {
         try
         {
-            if (request.Messages == null || request.Messages.Count == 0)
+            // Intentar leer como FormData primero
+            if (messages != null)
+            {
+                var messageList = System.Text.Json.JsonSerializer.Deserialize<List<ChatMessage>>(messages);
+                if (messageList == null || messageList.Count == 0)
+                {
+                    return BadRequest("Messages cannot be empty");
+                }
+
+                var (message, usage) = await _openAIService.GetChatResponseWithFilesAsync(messageList, files, model);
+                
+                _logger.LogInformation("Returning response with usage: PromptTokens={PromptTokens}, CompletionTokens={CompletionTokens}, TotalTokens={TotalTokens}", 
+                    usage?.PromptTokens ?? 0, usage?.CompletionTokens ?? 0, usage?.TotalTokens ?? 0);
+                
+                return Ok(new ChatResponse { Message = message, Usage = usage });
+            }
+
+            // Si no es FormData, intentar leer como JSON
+            using var reader = new StreamReader(Request.Body);
+            var body = await reader.ReadToEndAsync();
+            
+            if (string.IsNullOrWhiteSpace(body))
+            {
+                return BadRequest("Request body cannot be empty");
+            }
+
+            var request = System.Text.Json.JsonSerializer.Deserialize<ChatRequest>(body);
+            if (request?.Messages == null || request.Messages.Count == 0)
             {
                 return BadRequest("Messages cannot be empty");
             }
 
-            var (message, usage) = await _openAIService.GetChatResponseAsync(request.Messages, request.Model);
+            var (msg, usg) = await _openAIService.GetChatResponseAsync(request.Messages, request.Model);
             
             _logger.LogInformation("Returning response with usage: PromptTokens={PromptTokens}, CompletionTokens={CompletionTokens}, TotalTokens={TotalTokens}", 
-                usage?.PromptTokens ?? 0, usage?.CompletionTokens ?? 0, usage?.TotalTokens ?? 0);
+                usg?.PromptTokens ?? 0, usg?.CompletionTokens ?? 0, usg?.TotalTokens ?? 0);
             
-            return Ok(new ChatResponse { Message = message, Usage = usage });
+            return Ok(new ChatResponse { Message = msg, Usage = usg });
         }
         catch (Exception ex)
         {

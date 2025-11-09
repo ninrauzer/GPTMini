@@ -33,8 +33,8 @@ export const useChat = (options?: UseChatOptions) => {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [isLoading, setIsLoading] = useState(false)
 
-  const sendMessage = useCallback(async (content: string) => {
-    if (!content.trim()) return
+  const sendMessage = useCallback(async (content: string, files?: File[]) => {
+    if (!content.trim() && (!files || files.length === 0)) return
 
     const userMessage: ChatMessage = {
       role: 'user',
@@ -51,21 +51,40 @@ export const useChat = (options?: UseChatOptions) => {
     setIsLoading(true)
 
     try {
-      const requestBody: ChatRequest = {
-        messages: updatedMessages.map(({ role, content }) => ({
-          role,
-          content,
-        })),
-        model: options?.model,
-      }
+      let response: Response
 
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-      })
+      // Si hay archivos, enviar como FormData
+      if (files && files.length > 0) {
+        const formData = new FormData()
+        formData.append('model', options?.model || 'gpt-4o-mini')
+        formData.append('messages', JSON.stringify(updatedMessages.map(({ role, content }) => ({ role, content }))))
+        
+        files.forEach((file) => {
+          formData.append(`files`, file)
+        })
+
+        response = await fetch('/api/chat', {
+          method: 'POST',
+          body: formData,
+        })
+      } else {
+        // Sin archivos, enviar JSON normal
+        const requestBody: ChatRequest = {
+          messages: updatedMessages.map(({ role, content }) => ({
+            role,
+            content,
+          })),
+          model: options?.model,
+        }
+
+        response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestBody),
+        })
+      }
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))

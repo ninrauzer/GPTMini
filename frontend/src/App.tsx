@@ -68,13 +68,13 @@ function App() {
   }
 
   // Manejar envío de mensaje - crear chat si no existe
-  const handleSendMessage = async (content: string) => {
+  const handleSendMessage = async (content: string, files?: File[]) => {
     // Si no hay chat actual, crear uno nuevo
     if (!currentChatId) {
       createNewChat(selectedModel)
     }
-    // Enviar el mensaje
-    await sendMessage(content)
+    // Enviar el mensaje con archivos opcionales
+    await sendMessage(content, files)
   }
 
   useEffect(() => {
