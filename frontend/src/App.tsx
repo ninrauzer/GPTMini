@@ -67,12 +67,15 @@ function App() {
     }
   }
 
-  // Crear primer chat si no existe ninguno
-  useEffect(() => {
-    if (chats.length === 0 && !currentChatId) {
+  // Manejar envío de mensaje - crear chat si no existe
+  const handleSendMessage = async (content: string) => {
+    // Si no hay chat actual, crear uno nuevo
+    if (!currentChatId) {
       createNewChat(selectedModel)
     }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+    // Enviar el mensaje
+    await sendMessage(content)
+  }
 
   useEffect(() => {
     // Load initial model from config
@@ -226,7 +229,7 @@ function App() {
           )}
         </div>
         <ChatWindow messages={messages} isLoading={isLoading} />
-        <InputBar onSendMessage={sendMessage} disabled={isLoading} />
+        <InputBar onSendMessage={handleSendMessage} disabled={isLoading} />
         <StatusBar 
           totalTokens={totalTokens}
           promptTokens={totalPromptTokens}

@@ -134,9 +134,19 @@ class ChatStorageService {
 
     if (chatIndex === -1) return null
 
+    const currentChat = history.chats[chatIndex]
+    
+    // Auto-generar título si el chat tenía "Nuevo chat" y ahora tiene mensajes
+    let finalUpdates = { ...updates }
+    if (updates.messages && updates.messages.length > 0) {
+      if (currentChat.title === 'Nuevo chat' || currentChat.messages.length === 0) {
+        finalUpdates.title = this.generateTitle(updates.messages)
+      }
+    }
+
     const updatedChat = {
-      ...history.chats[chatIndex],
-      ...updates,
+      ...currentChat,
+      ...finalUpdates,
       updatedAt: new Date().toISOString(),
     }
 
