@@ -14,6 +14,7 @@ Ejecución 100 % local en Linux o Windows.
 | Modelo | OpenAI / OpenRouter | Generación de texto |
 
 ## 🧩 Estructura
+
 chatgpt-local/
 ├── backend/
 │   ├── Controllers/
@@ -25,7 +26,7 @@ chatgpt-local/
 │       ├── components/
 │       ├── hooks/
 │       └── pages/
-└── embeddings-service/
+└── service/
     ├── main.py
     ├── requirements.txt
     └── data/embeddings/
@@ -37,7 +38,7 @@ cd backend
 dotnet run
 
 # Embeddings service
-cd embeddings-service
+cd service
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt

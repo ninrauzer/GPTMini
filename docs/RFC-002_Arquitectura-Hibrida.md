@@ -30,6 +30,9 @@ Microservicio FastAPI
    ├─ /embed   → ingesta texto/archivos → embeddings
    ├─ /query   → búsqueda semántica
    └─ ChromaDB persistente (./data/embeddings)
+   > 💡 **Nota:**  
+   > **EVOLUCION:** ChromaDB (Python local) → FAISS (rendimiento) → Milvus / Qdrant (producción distribuida)
+
 
 ## 4. Beneficios
 - Desacopla IA de la capa de control.  
@@ -51,7 +54,7 @@ Se adopta arquitectura híbrida:
 **Python FastAPI → inteligencia contextual**
 
 ## 7. Próximos pasos
-1. Crear carpeta `embeddings-service/`.  
+1. Crear carpeta `service/`.  
 2. Implementar endpoints `/embed` y `/query`.  
 3. Conectar .NET 8 → FastAPI vía HTTP.  
 4. Probar recuperación contextual con documentos de muestra.

@@ -117,6 +117,8 @@ export const useChat = (options?: UseChatOptions) => {
     messages,
     sendMessage,
     isLoading,
+    setMessages,
+    clearMessages: () => setMessages([]),
   }
 }
 

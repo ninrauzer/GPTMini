@@ -2,15 +2,77 @@ import { useState, useEffect, useRef } from 'react'
 import ChatWindow from './components/ChatWindow'
 import InputBar from './components/InputBar'
 import StatusBar from './components/StatusBar'
+import { ChatHistorySidebar } from './components/ChatHistorySidebar'
 import { useChat } from './hooks/useChat'
 import { useTokenUsage } from './hooks/useTokenUsage'
+import { useChatHistory } from './hooks/useChatHistory'
 
 function App() {
   const [selectedModel, setSelectedModel] = useState<string>('gpt-3.5-turbo')
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const { totalTokens, totalPromptTokens, totalCompletionTokens, addTokenUsage, resetTokenUsage } = useTokenUsage()
-  const { messages, sendMessage, isLoading } = useChat({ onTokenUsage: addTokenUsage, model: selectedModel })
+  const { messages, sendMessage, isLoading, setMessages } = useChat({ onTokenUsage: addTokenUsage, model: selectedModel })
   const [showExportMenu, setShowExportMenu] = useState(false)
   const exportMenuRef = useRef<HTMLDivElement>(null)
+
+  // Chat history hook
+  const {
+    chats,
+    currentChatId,
+    createNewChat,
+    loadChat,
+    updateCurrentChat,
+    deleteChat,
+    renameChat,
+  } = useChatHistory()
+
+  // Auto-guardar mensajes en el chat actual
+  useEffect(() => {
+    if (currentChatId && messages.length > 0) {
+      updateCurrentChat({
+        messages,
+        totalTokens,
+        model: selectedModel,
+      })
+    }
+  }, [messages, currentChatId, totalTokens, selectedModel, updateCurrentChat])
+
+  // Manejar creación de nuevo chat
+  const handleNewChat = () => {
+    createNewChat(selectedModel)
+    setMessages([])
+    resetTokenUsage()
+    setSidebarOpen(false)
+  }
+
+  // Manejar selección de chat
+  const handleSelectChat = (chatId: string) => {
+    const chat = loadChat(chatId)
+    if (chat) {
+      setMessages(chat.messages)
+      setSelectedModel(chat.model)
+      resetTokenUsage()
+      // Recalcular tokens si es necesario
+      // Note: esto es una aproximación, los tokens reales vendrán del uso
+    }
+    setSidebarOpen(false)
+  }
+
+  // Manejar eliminación de chat
+  const handleDeleteChat = (chatId: string) => {
+    deleteChat(chatId)
+    if (chatId === currentChatId) {
+      setMessages([])
+      resetTokenUsage()
+    }
+  }
+
+  // Crear primer chat si no existe ninguno
+  useEffect(() => {
+    if (chats.length === 0 && !currentChatId) {
+      createNewChat(selectedModel)
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     // Load initial model from config
@@ -109,8 +171,21 @@ function App() {
   }
 
   return (
-    <div className="h-screen flex flex-col">
-      <div className="w-full bg-white flex flex-col h-full">
+    <div className="h-screen flex">
+      {/* Sidebar */}
+      <ChatHistorySidebar
+        chats={chats}
+        currentChatId={currentChatId}
+        onSelectChat={handleSelectChat}
+        onNewChat={handleNewChat}
+        onDeleteChat={handleDeleteChat}
+        onRenameChat={renameChat}
+        isOpen={sidebarOpen}
+        onToggle={() => setSidebarOpen(!sidebarOpen)}
+      />
+
+      {/* Main content */}
+      <div className="flex-1 flex flex-col">
         <div className="bg-gradient-to-r from-primary-600 to-primary-800 text-white p-4 flex items-center justify-between">
           <h1 className="text-2xl font-bold">GPTMini</h1>
           {messages.length > 0 && (
