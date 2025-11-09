@@ -1,4 +1,4 @@
-import { useState, KeyboardEvent } from 'react'
+import { useState, KeyboardEvent, useRef, useEffect } from 'react'
 
 interface InputBarProps {
   onSendMessage: (message: string) => void
@@ -7,11 +7,20 @@ interface InputBarProps {
 
 const InputBar = ({ onSendMessage, disabled }: InputBarProps) => {
   const [input, setInput] = useState('')
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  // Mantener el foco en el textarea cuando el disabled cambia (cuando termina de cargar)
+  useEffect(() => {
+    if (!disabled && textareaRef.current) {
+      textareaRef.current.focus()
+    }
+  }, [disabled])
 
   const handleSend = () => {
     if (input.trim() && !disabled) {
       onSendMessage(input)
       setInput('')
+      // El foco se restaurará automáticamente cuando disabled vuelva a false
     }
   }
 
@@ -26,6 +35,7 @@ const InputBar = ({ onSendMessage, disabled }: InputBarProps) => {
     <div className="border-t border-gray-200 p-4 bg-white rounded-b-lg">
       <div className="flex items-end space-x-2">
         <textarea
+          ref={textareaRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyPress={handleKeyPress}
