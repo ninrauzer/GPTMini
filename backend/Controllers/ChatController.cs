@@ -67,7 +67,16 @@ public class ChatController : ControllerBase
                     return BadRequest("Messages cannot be empty");
                 }
 
-                var (message, usage) = await _openAIService.GetChatResponseWithFilesAsync(messageList, files, model);
+                // Si hay archivos de imagen, forzar el uso de un modelo con Vision
+                var selectedModel = model;
+                if (files != null && files.Any(f => f.ContentType.StartsWith("image/")))
+                {
+                    // Usar gpt-4o que soporta vision y es más económico que gpt-4-vision-preview
+                    selectedModel = "gpt-4o";
+                    _logger.LogInformation("Switching to gpt-4o for image processing (has files: {HasFiles})", files?.Count ?? 0);
+                }
+
+                var (message, usage) = await _openAIService.GetChatResponseWithFilesAsync(messageList, files, selectedModel);
                 
                 _logger.LogInformation("Returning response with usage: PromptTokens={PromptTokens}, CompletionTokens={CompletionTokens}, TotalTokens={TotalTokens}", 
                     usage?.PromptTokens ?? 0, usage?.CompletionTokens ?? 0, usage?.TotalTokens ?? 0);

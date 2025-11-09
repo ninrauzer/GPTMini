@@ -136,7 +136,15 @@ public class OpenAIService : IOpenAIService
     {
         try
         {
-            model ??= _configuration["OpenAI:Model"] ?? "gpt-4o-mini";
+            // Si hay archivos de imagen, forzar gpt-4o
+            if (files != null && files.Any(f => f.ContentType.StartsWith("image/")))
+            {
+                model = "gpt-4o";
+            }
+            else
+            {
+                model ??= _configuration["OpenAI:Model"] ?? "gpt-4o-mini";
+            }
 
             // Construir los mensajes para Vision API
             var openAIMessages = new List<object>();
