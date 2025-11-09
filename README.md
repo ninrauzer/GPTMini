@@ -20,10 +20,18 @@ GPTMini/
 ## Features
 
 - 💬 Chat interface similar to ChatGPT
-- 🔌 RESTful API backend with ASP.NET Core
+- � **Historial de chats** con auto-guardado en LocalStorage
+- 🔍 **Búsqueda de chats** por título o contenido
+- 📎 **Adjuntar archivos** (imágenes, PDFs, DOCX, TXT)
+- 🖼️ **Análisis de imágenes** con GPT-4 Vision API
+- 📋 **Paste de imágenes** (Ctrl+V) directo desde portapapeles
+- 🎯 **Drag & Drop** de archivos
+- �🔌 RESTful API backend with ASP.NET Core
 - ⚛️ Modern React frontend with TypeScript
 - 🎨 Beautiful UI with Tailwind CSS
 - 🔄 Real-time chat responses
+- 📊 Token usage tracking
+- 💾 Export chat to TXT or Markdown
 - 🔒 Secure API key management
 
 ## Prerequisites
@@ -77,13 +85,31 @@ npm run dev
 
 El frontend estará en `http://localhost:5173`
 
-## 📖 Uso
+## � Uso
 
 1. ✅ Asegúrate de tener tu API key de OpenAI configurada
 2. ✅ Inicia el backend (debe estar ejecutándose primero)
 3. ✅ Inicia el frontend
 4. ✅ Abre `http://localhost:5173` en tu navegador
 5. 💬 ¡Comienza a chatear!
+
+### 🎯 Funcionalidades Principales
+
+**Historial de Chats:**
+- Los chats se guardan automáticamente en tu navegador
+- Máximo 100 chats, auto-eliminación después de 30 días
+- Búsqueda por título o contenido
+- Renombrar y eliminar chats
+- Títulos auto-generados del primer mensaje
+
+**Adjuntar Archivos:**
+- 📎 Click en el botón de adjuntar
+- 📋 Ctrl+V para pegar imágenes del portapapeles  
+- 🎯 Arrastra y suelta archivos en la caja de texto
+- Máximo 2 archivos por mensaje, 10MB total
+- Tipos soportados:
+  - Imágenes: PNG, JPEG, JPG, GIF, WEBP (análisis con Vision API)
+  - Documentos: PDF, DOCX, TXT (preparados para Fase 2)
 
 ## 📝 Documentación Detallada
 
