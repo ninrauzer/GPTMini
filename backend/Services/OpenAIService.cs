@@ -155,13 +155,17 @@ public class OpenAIService : IOpenAIService
             var lastMessage = messages.Last();
             var contentParts = new List<object>();
 
-            // Agregar texto
-            if (!string.IsNullOrWhiteSpace(lastMessage.Content))
+            // Agregar texto (si no hay contenido pero hay archivos, usar un placeholder)
+            var textContent = !string.IsNullOrWhiteSpace(lastMessage.Content) 
+                ? lastMessage.Content 
+                : (files != null && files.Count > 0 ? "Analiza esta imagen" : "");
+            
+            if (!string.IsNullOrWhiteSpace(textContent))
             {
                 contentParts.Add(new
                 {
                     type = "text",
-                    text = lastMessage.Content
+                    text = textContent
                 });
             }
 

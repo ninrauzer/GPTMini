@@ -38,7 +38,7 @@ export const useChat = (options?: UseChatOptions) => {
 
     const userMessage: ChatMessage = {
       role: 'user',
-      content: content.trim(),
+      content: content.trim() || '[Imagen adjunta]', // Si no hay texto pero hay archivos, poner placeholder
       timestamp: new Date(),
     }
 
